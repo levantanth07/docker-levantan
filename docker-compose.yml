@@ -1,0 +1,111 @@
+version: '3'
+services:
+
+  #PHP Service
+  php_levantan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: digitalocean.com/php
+    container_name: php_levantan
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: php_levantan
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network-levantan
+
+  #Nginx Service
+  nginx_levantan:
+    image: nginx:alpine
+    container_name: nginx_levantan
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - app-network-levantan
+
+  #MySQL Service
+  mysql_levantan:
+    image: mysql:5.7.22
+    container_name: mysql_levantan
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: 123456
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql_levantan
+    volumes:
+      - dbdata:/var/lib/mysql_levantan/
+      - ./mysql_levantan/my.cnf:/etc/mysql_levantan/my.cnf
+    networks:
+      - app-network-levantan
+
+  #mongo db
+  mongo_levantan:
+    image: mongo
+    container_name: mongo_levantan
+    restart: unless-stopped
+    volumes:
+      - dbdata:/var/lib/db-data-mongo/
+    ports:
+      - 27017:27017
+    networks:
+      - app-network-levantan
+
+  #redis
+  redis_levantan:
+    image: redis:latest
+    container_name: redis_levantan
+    restart: always
+    volumes:
+      - dbdata:/var/lib/data-redis/
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network-levantan
+
+  #memcached
+  memcached_levantan:
+    image: 'bitnami/memcached:latest'
+    container_name: memcached_levantan
+    restart: always
+    volumes:
+      - dbdata:/var/lib/data-memcached/
+    ports:
+      - "11211:11211"
+    networks:
+      - app-network-levantan
+
+  #MySQL phpmyadmin
+  phpmyadmin_levantan:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8082:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - app-network-levantan
+
+#Docker Networks
+networks:
+  app-network-levantan:
+    driver: bridge
+#Volumes
+volumes:
+  dbdata:
+    driver: local
